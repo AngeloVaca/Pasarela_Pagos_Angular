@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { environment } from '../../environments/environment.development';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { admin, loginAdmin, loginresp } from '../models/admin.model';
 import { catchError, map, throwError } from 'rxjs';
 
@@ -22,9 +22,19 @@ export class AdminService {
         map((response: string) => {
           return { token: response }; // Convierte la respuesta en un objeto JSON
         }),
-        catchError((error) => {
+        catchError((error: HttpErrorResponse) => {
           console.error('Error en autenticación:', error);
-          return throwError(() => new Error('Falló la autenticación.'));
+
+          let errorMessage = 'Error en la autenticación. Intenta nuevamente.';
+          
+          // ✅ Maneja errores 400 y 401 con mensajes personalizados
+          if (error.status === 400) {
+            errorMessage = 'Solicitud incorrecta. Verifica los datos ingresados.';
+          } else if (error.status === 401) {
+            errorMessage = 'Credenciales incorrectas. No autorizado.';
+          }
+
+          return throwError(() => new Error(errorMessage));
         })
       );
   }
